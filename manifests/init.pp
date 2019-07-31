@@ -84,6 +84,10 @@
 # [*threshold_config*]
 #   An array of suricatas threshold configuration options.
 #
+# [*manage_service*]
+#   Boolean. Wether the suricata service should be managed by puppet.
+#   Default: true
+#
 
 class suricata (
   String $ensure,
@@ -102,10 +106,9 @@ class suricata (
   Stdlib::Absolutepath $bin_path,
   Boolean $basic_configuration_enabled,
   Boolean $configure_epel,
-  String $ppa_source,
-  Variant[String, Boolean] $interfaces  = split($::interfaces, ',')[0],
+  Optional[String] $interfaces  = split($::interfaces, ',')[0],
   Optional[String] $cmd_options = undef,
-
+  Boolean $manage_service = true,
     ### START Hiera Lookups ###
   Optional[Hash] $main_config            = {},
   Optional[Array] $classification_config = [],
@@ -133,5 +136,7 @@ class suricata (
 
   Class['::suricata::install']->
   Class['::suricata::config']~>
+  if $::suricata::manage_service {
   Class['::suricata::service']
+  }
 }
