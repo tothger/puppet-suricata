@@ -17,23 +17,30 @@ class suricata::config {
     }
   } else { $usr_require = undef }
 
-  file { [$::suricata::config_dir, "${::suricata::config_dir}/rules", "${::suricata::config_dir}/lua-output", $::suricata::log_dir]:
-    ensure  => directory,
-    owner   => $::suricata::user,
-    group   => 'root',
-    mode    => '0755',
-    require => $usr_require,
-    before  => File["${::suricata::config_dir}/${::suricata::config_name}"],
-  }
+  case $::suricata::service_provider {
+    'systemd': {
+      file { [$::suricata::config_dir, "${::suricata::config_dir}/rules", $::suricata::log_dir]:
+        ensure  => directory,
+        owner   => $::suricata::user,
+        group   => 'root',
+        mode    => '0750',
+        require => $usr_require,
+        before  => File["${::suricata::config_dir}/${::suricata::config_name}"],
+      }
 
-  file { "${::suricata::config_dir}/${::suricata::config_name}":
-    ensure  => present,
-    owner   => $::suricata::user,
-    group   => 'root',
-    mode    => '0600',
-    content => "# This file is managed by Puppet. DO NOT EDIT.\n\n${::suricata::_main_config.to_yaml}",
-    notify  => Service[$::suricata::service_name],
-    require => $usr_require,
+      file { "${::suricata::config_dir}/${::suricata::config_name}":
+        ensure  => present,
+        owner   => $::suricata::user,
+        group   => 'root',
+        mode    => '0600',
+        content => "# This file is managed by Puppet. DO NOT EDIT.\n\n${::suricata::_main_config.to_yaml}",
+        notify => Service[$::suricata::service_name],
+        require => $usr_require,
+      }
+    }
+    default: {
+      notice("You are using managed service")
+    }
   }
 
   file { "${::suricata::config_dir}/classification.config":
