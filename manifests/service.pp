@@ -2,15 +2,9 @@ class suricata::service {
 
   case $::suricata::service_provider {
     'systemd': {
-      
-      $systemd_path = $::operatingsystem ? {
-        /(Ubuntu|Debian)/ => '/lib/systemd/system',
-        default           => '/usr/lib/systemd/system',
-      }
+      $service_require = File['/usr/lib/systemd/system/suricata.service']
 
-      $service_require = File["${systemd_path}/suricata.service"]
-
-      file { "${systemd_path}/suricata.service":
+      file { '/usr/lib/systemd/system/suricata.service':
         ensure  => file,
         owner   => 'root',
         group   => 'root',
@@ -20,23 +14,27 @@ class suricata::service {
 
       exec { 'Daemon-reload':
         command     => '/bin/systemctl daemon-reload',
-        subscribe   => File["${systemd_path}/suricata.service"],
+        subscribe   => File['/usr/lib/systemd/system/suricata.service'],
         refreshonly => true,
         notify      => Service[$::suricata::service_name],
+      }
+
+      service { $::suricata::service_name:
+        ensure   => $::suricata::service_ensure,
+        enable   => $::suricata::service_enable,
+        provider => $::suricata::service_provider,
+        require  => $service_require,
+      }
+    }
+    'managed_service': {
+      exec { 'Daemon-reload':
+        command     => '/bin/systemctl daemon-reload',
+        refreshonly => true,
       }
     }
     default: {
       $service_require = undef
-
       notice("Your ${::suricata::service_provider} is not supported")
     }
   }
-
-  service { $::suricata::service_name:
-    ensure   => $::suricata::service_ensure,
-    enable   => $::suricata::service_enable,
-    provider => $::suricata::service_provider,
-    require  => $service_require,
-  }
-
 }
